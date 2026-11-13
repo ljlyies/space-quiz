@@ -166,6 +166,8 @@
     .result p { color: var(--muted); line-height: 1.6; margin: 0 auto 22px; max-width: 350px; }
     .result-score { color: var(--accent); font-size: 38px; font-weight: 800; letter-spacing: -.05em; }
     .result .next { margin-top: 7px; }
+    .result .share { margin: 7px 8px 0 0; }
+    .share-feedback { min-height: 1.5em; margin: 12px auto 0 !important; font-size: 12px; }
     .bottom { display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 27px; color: var(--subtle); font-size: 11px; }
     .bottom .star { color: var(--accent); }
     @keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -219,6 +221,8 @@
           <h2 id="result-title">What a journey!</h2>
           <div class="result-score" id="result-score"></div>
           <p id="result-message"></p>
+          <button class="next share" id="share-result" type="button">Share result</button>
+          <p class="share-feedback" id="share-feedback" role="status" aria-live="polite"></p>
           <button class="next" id="restart" type="button">Play again <span aria-hidden="true">↗</span></button>
         </div>
       </div>
@@ -328,6 +332,34 @@
       $("quiz").hidden = false;
       renderQuestion();
       $("question").focus();
+    });
+
+    const shareButton = $("share-result");
+    const shareFeedback = $("share-feedback");
+    shareButton.textContent = typeof navigator.share === "function" ? "Share result" : "Copy result";
+    shareButton.addEventListener("click", async () => {
+      shareButton.disabled = true;
+      shareFeedback.textContent = "";
+      const summary = `I scored ${score} out of ${questions.length} on Cosmic Quest — A space exploration quiz!`;
+      try {
+        if (typeof navigator.share === "function") {
+          await navigator.share({ title: "Cosmic Quest quiz result", text: summary });
+          shareFeedback.textContent = "Your result was shared.";
+        } else if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(summary);
+          shareFeedback.textContent = "Result copied to clipboard.";
+        } else {
+          shareFeedback.textContent = "Sharing and clipboard access aren't available in this browser.";
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          shareFeedback.textContent = typeof navigator.share === "function"
+            ? "Couldn't share your result. Please try again."
+            : "Couldn't copy your result. Please try again.";
+        }
+      } finally {
+        shareButton.disabled = false;
+      }
     });
 
     $("question").setAttribute("tabindex", "-1");
